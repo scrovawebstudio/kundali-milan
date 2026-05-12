@@ -1,0 +1,202 @@
+<!-- LOADING OVERLAY -->
+<div class="overlay" [class.on]="loading()">
+  <div class="chakra"></div>
+  <div class="load-t">Calculating Kundali…</div>
+  <div class="load-s">Running astronomical engine…</div>
+</div>
+
+<!-- FORM -->
+<div class="card" *ngIf="!result()">
+  <div class="slabel">Step 1</div>
+  <h2 class="stitle">Enter Birth Details</h2>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="pgrid">
+      <!-- BOY -->
+      <div class="pblock">
+        <div class="ptitle boy"><span class="picon boy">♂</span> वर (Boy / Groom)</div>
+        <div class="fg"><label>Full Name</label>
+          <input type="text" formControlName="boyName" placeholder="Enter full name"></div>
+        <div class="fg"><label>Date of Birth</label>
+          <input type="date" formControlName="boyDOB"></div>
+        <div class="fg"><label>Time of Birth</label>
+          <app-time-picker formControlName="boyTOB"></app-time-picker></div>
+        <div class="fg"><label>City of Birth</label>
+          <input type="text" formControlName="boyCity" placeholder="e.g. Pune"></div>
+        <div class="fg"><label>Country / Timezone</label>
+          <app-tz-select formControlName="boyTZ"></app-tz-select></div>
+        <div class="fg"><label>Blood Group (optional)</label>
+          <select formControlName="boyBG">
+            <option value="">Not Known</option>
+            <option *ngFor="let bg of bgOptions" [value]="bg">{{ bg }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- GIRL -->
+      <div class="pblock">
+        <div class="ptitle girl"><span class="picon girl">♀</span> कन्या (Girl / Bride)</div>
+        <div class="fg"><label>Full Name</label>
+          <input type="text" formControlName="girlName" placeholder="Enter full name"></div>
+        <div class="fg"><label>Date of Birth</label>
+          <input type="date" formControlName="girlDOB"></div>
+        <div class="fg"><label>Time of Birth</label>
+          <app-time-picker formControlName="girlTOB"></app-time-picker></div>
+        <div class="fg"><label>City of Birth</label>
+          <input type="text" formControlName="girlCity" placeholder="e.g. Delhi"></div>
+        <div class="fg"><label>Country / Timezone</label>
+          <app-tz-select formControlName="girlTZ"></app-tz-select></div>
+        <div class="fg"><label>Blood Group (optional)</label>
+          <select formControlName="girlBG">
+            <option value="">Not Known</option>
+            <option *ngFor="let bg of bgOptions" [value]="bg">{{ bg }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="err" *ngIf="error()" style="display:block">{{ error() }}</div>
+    <button type="submit" class="btn-p" [disabled]="loading()">⚡ Calculate Kundali Milan</button>
+    <div class="info-note">Moon longitude computed using <strong>Jean Meeus VSOP87-derived algorithm</strong> with <strong>Lahiri Ayanamsha</strong>. All calculations run on the server.</div>
+  </form>
+</div>
+
+<!-- RESULTS -->
+<div id="km-results" *ngIf="result() as r">
+
+  <!-- Score Hero -->
+  <div class="card">
+    <div class="score-hero">
+      <div class="score-wrap">
+        <svg class="score-svg" viewBox="0 0 160 160">
+          <circle class="s-track" cx="80" cy="80" r="68"/>
+          <circle class="s-arc" cx="80" cy="80" r="68"
+            [style.stroke]="scoreColor(r.total)"
+            [style.strokeDashoffset]="427.26 * (1 - r.total/36)"
+            transform="rotate(-90 80 80)"/>
+        </svg>
+        <div class="s-inner">
+          <span class="s-num">{{ formatScore(r.total) }}</span>
+          <span class="s-den">out of 36</span>
+        </div>
+      </div>
+      <span class="vbadge" [class.v-ex]="r.verdict==='Excellent'" [class.v-gd]="r.verdict==='Good'" [class.v-av]="r.verdict==='Average'" [class.v-lo]="r.verdict==='Low'">
+        {{ verdictLabel(r.verdict) }}
+      </span>
+      <div class="cnames">{{ r.boyName }} ♡ {{ r.girlName }}</div>
+      <div style="text-align:center;margin-top:.5rem;font-size:.85rem;color:var(--text-light)">{{ scorePercent(r.total) }}% compatibility</div>
+    </div>
+
+    <!-- Radar -->
+    <div class="radar-wrap">
+      <svg class="radar-svg" id="rsvg" viewBox="0 0 320 296" [innerHTML]="radarSvg(r.kootas) | safeHtml"></svg>
+    </div>
+  </div>
+
+  <!-- Kundali Cards -->
+  <div class="card">
+    <div class="slabel">Janam Kundali</div>
+    <h2 class="stitle">Birth Chart Summary</h2>
+    <div class="kgrid">
+      <div class="kcrd" *ngFor="let person of [{card:r.boy,name:r.boyName,cls:'bc'},{card:r.girl,name:r.girlName,cls:'gc'}]">
+        <h3 [class]="person.cls">{{ person.name }}</h3>
+        <div class="kr"><span class="kk">Rashi (Moon Sign)</span><span class="kv">{{ person.card.rashi }}</span></div>
+        <div class="kr"><span class="kk">Nakshatra</span><span class="kv">{{ person.card.nak }} <small>Pada {{ person.card.pada }}</small></span></div>
+        <div class="kr"><span class="kk">Nakshatra Lord</span><span class="kv">{{ person.card.nlord }}</span></div>
+        <div class="kr"><span class="kk">Rashi Lord</span><span class="kv">{{ person.card.rlord }}</span></div>
+        <div class="kr"><span class="kk">Surya (Sun) in</span><span class="kv">{{ person.card.sunR }}</span></div>
+        <div class="kr"><span class="kk">Mangal (Mars) in</span><span class="kv">{{ person.card.marR }}</span></div>
+        <div class="kr"><span class="kk">Varna</span><span class="kv">{{ person.card.varna }}</span></div>
+        <div class="kr"><span class="kk">Lagna (Ascendant) ↑</span><span class="kv">{{ person.card.lagnaRashi }} <small>approx.</small></span></div>
+        <div class="kr"><span class="kk">Gana</span><span class="kv">{{ person.card.gana }}</span></div>
+        <div class="kr"><span class="kk">Nadi</span><span class="kv">{{ person.card.nadi }}</span></div>
+        <div class="kr"><span class="kk">Yoni</span><span class="kv">{{ person.card.yoni }} <small>({{ person.card.ygen === 'M' ? 'Male' : 'Female' }})</small></span></div>
+        <div class="kr"><span class="kk">Moon Longitude ☽</span><span class="kv">{{ person.card.moonLon.toFixed(4) }}° sidereal</span></div>
+        <div class="kr"><span class="kk">Birthplace</span><span class="kv">{{ person.card.city }} <small>UTC{{ person.card.tz >= 0 ? '+' : '' }}{{ person.card.tz }}</small></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vimshottari Dasha -->
+  <div class="card">
+    <div class="slabel">Vimshottari Dasha</div>
+    <h2 class="stitle">Current & Upcoming Planetary Periods</h2>
+    <div class="kgrid">
+      <div class="kcrd" *ngFor="let person of [{dashas:r.boy.dashas,name:r.boyName,cls:'bc'},{dashas:r.girl.dashas,name:r.girlName,cls:'gc'}]">
+        <h3 [class]="person.cls">{{ person.name }} — Dasha</h3>
+        <div class="dasha-row" *ngFor="let d of person.dashas" [style.background]="d.isCurrent ? 'rgba(212,160,23,.09)' : ''" [style.borderRadius]="d.isCurrent ? '6px' : ''" [style.opacity]="(!d.isCurrent && d.end < today()) ? '0.42' : '1'">
+          <span class="dl">{{ d.isCurrent ? '▶ ' : '' }}{{ d.pl }}</span>
+          <span class="dy">{{ d.start }} → {{ d.end }} &nbsp;<small>({{ d.yrs }} yrs)</small></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ashta Koota Table -->
+  <div class="card">
+    <div class="slabel">Ashta Koota Milan</div>
+    <h2 class="stitle">Eight Compatibility Categories</h2>
+    <table class="ktbl">
+      <thead>
+        <tr><th>Koota</th><th>Boy's Value</th><th>Girl's Value</th><th>Score</th><th>Max</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let k of r.kootaRows">
+          <td><span class="kn">{{ k.name }}</span><span class="ks">{{ k.sub }}</span></td>
+          <td class="kvt">{{ k.boyVal }}</td>
+          <td class="kvt">{{ k.girlVal }}</td>
+          <td>
+            <span class="pill" [class]="pillClass(k.score, k.max)">{{ formatScore(k.score) }}</span>
+            <span class="bw"><span class="bf" [style.width]="fracPct(k.score,k.max)+'%'"></span></span>
+          </td>
+          <td class="kvt" style="color:var(--text-light)">{{ k.max }}</td>
+          <td class="kvt">{{ k.score === k.max ? 'Full' : k.score === 0 ? 'None' : 'Partial' }}</td>
+        </tr>
+        <tr class="trow">
+          <td colspan="3">Total Gun Milan Score</td>
+          <td><span class="pill" [class]="r.total>=25?'pf':r.total>=18?'pp':'pz'">{{ formatScore(r.total) }} / 36</span></td>
+          <td colspan="2">{{ scorePercent(r.total) }}% compatibility</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Doshas -->
+  <div class="card">
+    <div class="slabel">Dosha Vichar</div>
+    <h2 class="stitle">Planetary Afflictions</h2>
+    <div id="ddgrid">
+      <div class="dcrd" *ngFor="let d of r.doshas" [class]="d.cls">
+        <div class="dhdr">
+          <span class="dico">{{ d.ico }}</span>
+          <span class="dnm">{{ d.name }}</span>
+          <span class="dbdg" [class]="d.bdg">{{ d.lbl }}</span>
+        </div>
+        <p class="ddesc">{{ d.desc }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medical (if blood groups provided) -->
+  <div class="card" *ngIf="r.boyBG && r.girlBG">
+    <div class="slabel">Medical Pre-Marriage Screening</div>
+    <h2 class="stitle">🩸 Blood Group & Health Compatibility</h2>
+    <app-medical-report [boyBG]="r.boyBG" [girlBG]="r.girlBG"></app-medical-report>
+  </div>
+
+  <!-- Remedies -->
+  <div class="card">
+    <div class="slabel">Parihara / Upaya</div>
+    <h2 class="stitle">Suggested Remedies</h2>
+    <ul class="rlist">
+      <li *ngFor="let rem of r.remedies">{{ rem }}</li>
+    </ul>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-s" (click)="window.print()">🖨️ Print / Save as PDF</button>
+    <button class="btn-s" (click)="shareWA(r)">📲 Share on WhatsApp</button>
+    <button class="btn-s" (click)="reset()">🔄 New Calculation</button>
+  </div>
+</div>

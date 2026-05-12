@@ -1,0 +1,246 @@
+<!-- LOADING OVERLAY -->
+<div class="overlay" [class.on]="loading()">
+  <div class="chakra"></div>
+  <div class="load-t">Calculating Bhavishya…</div>
+  <div class="load-s">Running astronomical & dasha engines…</div>
+</div>
+
+<!-- ══════════════════════ FORM ══════════════════════ -->
+<div class="card" *ngIf="!result()">
+  <div class="slabel">Janma Kundali</div>
+  <h2 class="stitle">Enter Your Birth Details</h2>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="sfm">
+      <div class="fg"><label>Full Name</label>
+        <input type="text" formControlName="name" placeholder="Your full name"></div>
+      <div class="fg"><label>Gender</label>
+        <select formControlName="gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select></div>
+      <div class="fg"><label>Date of Birth</label>
+        <input type="date" formControlName="dob"></div>
+      <div class="fg"><label>Time of Birth</label>
+        <app-time-picker formControlName="tob"></app-time-picker></div>
+      <div class="fg"><label>City of Birth</label>
+        <input type="text" formControlName="city" placeholder="e.g. Mumbai"></div>
+      <div class="fg"><label>Country / Timezone</label>
+        <app-tz-select formControlName="tz"></app-tz-select></div>
+    </div>
+
+    <div class="err" *ngIf="error()" style="display:block">{{ error() }}</div>
+    <button type="submit" class="btn-p" [disabled]="loading()">🔮 Generate Bhavishya</button>
+    <div class="info-note">Planetary positions calculated via <strong>Jean Meeus VSOP87-derived algorithms</strong> with <strong>Lahiri Ayanamsha</strong>. All computation runs on the backend server.</div>
+  </form>
+</div>
+
+<!-- ══════════════════════ RESULTS ══════════════════════ -->
+<div id="bhav-results" *ngIf="result() as r">
+
+  <!-- ── Hero Panel ── -->
+  <div class="card">
+    <div class="bhero">
+      <div class="bh-name">{{ r.name }}</div>
+      <div class="bh-sub">{{ r.moonRashi }} · {{ r.nakshatra }} Nakshatra</div>
+      <div class="bh-lagna">Lagna: {{ r.lagnaRashiShort }}</div>
+      <div class="bh-dasha" *ngIf="r.dashaProgress as dp">
+        <span class="sym">{{ sym(dp.mahaLabel) }}</span> {{ dp.mahaLabel }} Mahadasha &nbsp;·&nbsp;
+        <span *ngIf="dp.antarLabel">{{ sym(dp.antarLabel) }} {{ dp.antarLabel }} Antardasha</span>
+      </div>
+    </div>
+
+    <!-- Zodiac strip -->
+    <div class="zodiac-strip-wrap">
+      <div class="slabel" style="margin-bottom:.5rem">Planetary Positions</div>
+      <div [innerHTML]="zodiacSvg(r) | safeHtml"></div>
+      <div class="zodiac-legend">
+        <span *ngFor="let p of r.zodiacStrip" class="zl-item" [title]="p.rashiFull">
+          {{ p.name }}: {{ p.rashi }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Dasha Progress ── -->
+  <div class="card" *ngIf="r.dashaProgress as dp">
+    <div class="slabel">Current Dasha Phase</div>
+    <h2 class="stitle">Vimshottari Dasha — Active Period</h2>
+    <div class="dpha-grid">
+      <div class="dpha-box">
+        <div class="dpha-lbl">Current Mahadasha</div>
+        <div class="dpha-pl">{{ sym(dp.mahaLabel) }} <span>{{ dp.mahaLabel }}</span></div>
+        <div class="dpha-per">{{ dp.mahaStart }} → {{ dp.mahaEnd }} ({{ dp.mahaYrs }} yrs)</div>
+      </div>
+      <div class="dpha-box" *ngIf="dp.antarLabel">
+        <div class="dpha-lbl">Current Antardasha</div>
+        <div class="dpha-pl">{{ sym(dp.antarLabel) }} <span>{{ dp.antarLabel }}</span></div>
+        <div class="dpha-per">{{ dp.antarStart }} → {{ dp.antarEnd }} ({{ dp.antarYrs }} yrs)</div>
+      </div>
+    </div>
+    <div class="tl-bar">
+      <div class="tl-label">{{ dp.mahaLabel }} Mahadasha progress: {{ pct(dp) | number:'1.0-0' }}% elapsed</div>
+      <div class="tl-track">
+        <div class="tl-fill" [style.width]="pct(dp)+'%'"></div>
+        <div class="tl-marker" [style.left]="pct(dp)+'%'"></div>
+      </div>
+    </div>
+    <div class="dasha-effects" *ngIf="r.dashaEffect">
+      <div class="info-note"><strong>{{ r.maha }} Mahadasha:</strong> {{ r.dashaEffect.mahaDesc }}</div>
+      <div class="info-note" style="margin-top:.6rem" *ngIf="r.antar"><strong>{{ r.antar }} Antardasha:</strong> {{ r.dashaEffect.antarDesc }}</div>
+    </div>
+  </div>
+
+  <!-- ── Tab Navigation ── -->
+  <div class="tab-nav">
+    <button class="tab-btn" [class.active]="activeTab()==='life'"     (click)="setTab('life')">🌟 Life Areas</button>
+    <button class="tab-btn" [class.active]="activeTab()==='dasha'"    (click)="setTab('dasha')">⏳ Dashas</button>
+    <button class="tab-btn" [class.active]="activeTab()==='bhava'"    (click)="setTab('bhava')">🏠 Bhava Chart</button>
+    <button class="tab-btn" [class.active]="activeTab()==='dosha'"    (click)="setTab('dosha')">⚡ Doshas</button>
+    <button class="tab-btn" [class.active]="activeTab()==='guidance'" (click)="setTab('guidance')">🧭 Guidance</button>
+    <button class="tab-btn" [class.active]="activeTab()==='recs'"     (click)="setTab('recs')">💎 Remedies</button>
+  </div>
+
+  <!-- ── LIFE AREAS TAB ── -->
+  <div class="card" *ngIf="activeTab()==='life'">
+    <div class="slabel">Life Area Analysis</div>
+    <h2 class="stitle">Planetary Influence on Key Life Domains</h2>
+    <div class="life-grid">
+      <div class="life-card" *ngFor="let la of r.lifeAreas" [class]="'lc-'+la.str">
+        <div class="lc-head">
+          <span class="lc-icon">{{ la.icon }}</span>
+          <span class="lc-title">{{ la.title }}</span>
+        </div>
+        <div class="lc-meter">
+          <div class="lc-fill" [class]="la.str" [style.width]="la.score+'%'"></div>
+        </div>
+        <p class="lc-text">{{ la.text }}</p>
+        <div class="lc-str" [class]="strClass(la.str)">
+          {{ strLabel(la.str) }} ({{ la.score }}%)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DASHA TAB ── -->
+  <div class="card" *ngIf="activeTab()==='dasha'">
+    <div class="slabel">Vimshottari Dasha</div>
+    <h2 class="stitle">Complete 120-Year Planetary Period Sequence</h2>
+    <div class="dasha-table">
+      <div class="drow" *ngFor="let d of r.dashas"
+           [class.dcur]="d.isCurrent"
+           [style.opacity]="(!d.isCurrent && d.end < today) ? '0.4' : '1'">
+        <span class="dsym">{{ sym(d.pl) }}</span>
+        <span class="dpl">{{ d.isCurrent ? '▶ ' : '' }}{{ d.pl }}</span>
+        <span class="dper">{{ d.start }} → {{ d.end }}</span>
+        <span class="dyrs">{{ d.yrs }} yrs</span>
+        <span class="dcur-tag" *ngIf="d.isCurrent">ACTIVE</span>
+      </div>
+    </div>
+    <div class="info-note" style="margin-top:1rem">Vimshottari Dasha is a 120-year cycle of nine planetary periods. Each planet rules a period of fixed duration. Your current Mahadasha lord strongly colours your experiences, opportunities, and challenges during that phase.</div>
+  </div>
+
+  <!-- ── BHAVA CHART TAB ── -->
+  <div class="card" *ngIf="activeTab()==='bhava'">
+    <div class="slabel">Janma Kundali</div>
+    <h2 class="stitle">North-Indian Birth Chart (Bhava)</h2>
+    <div class="bhava-layout">
+      <div [innerHTML]="bhavaSvg(r) | safeHtml" class="bhava-chart-wrap"></div>
+      <div class="planet-grid-wrap">
+        <div class="slabel">Planet Positions</div>
+        <div class="planet-grid">
+          <div class="planet-cell" *ngFor="let p of r.bhavaData.planetGrid">
+            <div class="pc-sym">{{ sym(p.name) }}</div>
+            <div class="pc-name">{{ p.name }}</div>
+            <div class="pc-rashi">{{ p.rashi }}</div>
+            <div class="pc-deg">{{ p.degree | number:'1.1-1' }}° H{{ p.house }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DOSHAS TAB ── -->
+  <div class="card" *ngIf="activeTab()==='dosha'">
+    <div class="slabel">Dosha Vichar</div>
+    <h2 class="stitle">Planetary Afflictions in Your Chart</h2>
+    <div class="dosha-grid">
+      <div class="dd-card" *ngFor="let d of r.doshas"
+           [class.dd-present]="d.present"
+           [class.dd-partial]="d.partial && !d.present"
+           [class.dd-absent]="!d.present && !d.partial">
+        <div class="dd-head">
+          <span style="font-size:1.2rem">{{ d.ico }}</span>
+          <span class="dd-name">{{ d.name }}</span>
+          <span class="dd-badge" [class.bp2]="d.present" [class.bw2]="d.partial && !d.present" [class.ba2]="!d.present && !d.partial">
+            {{ d.present ? 'Present' : d.partial ? 'Partial' : 'Absent' }}
+          </span>
+        </div>
+        <p class="dd-text">{{ d.desc }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GUIDANCE TAB ── -->
+  <div class="card" *ngIf="activeTab()==='guidance'">
+    <div class="slabel">Jyotish Guidance</div>
+    <h2 class="stitle">Daily · Weekly · Monthly Guidance</h2>
+    <div class="guidance-sections">
+      <div class="guid-sec">
+        <div class="guid-head">📅 Daily Guidance</div>
+        <ul class="guid-list">
+          <li *ngFor="let g of r.guidance.daily"><span class="gi">{{ g.ico }}</span>{{ g.text }}</li>
+        </ul>
+      </div>
+      <div class="guid-sec">
+        <div class="guid-head">🗓️ Weekly Guidance</div>
+        <ul class="guid-list">
+          <li *ngFor="let g of r.guidance.weekly"><span class="gi">{{ g.ico }}</span>{{ g.text }}</li>
+        </ul>
+      </div>
+      <div class="guid-sec">
+        <div class="guid-head">🌙 Monthly Guidance</div>
+        <ul class="guid-list">
+          <li *ngFor="let g of r.guidance.monthly"><span class="gi">{{ g.ico }}</span>{{ g.text }}</li>
+        </ul>
+      </div>
+    </div>
+    <!-- Recommendations -->
+    <div class="slabel" style="margin-top:1.5rem">Recommendations</div>
+    <h3 style="font-family:'Cinzel Decorative',serif;font-size:.95rem;color:var(--gold-light);margin-bottom:1rem">Lucky Colors · Gems · Mantras · Fasting</h3>
+    <div class="rec-grid">
+      <div class="rec-card" *ngFor="let rec of r.recs">
+        <div class="rec-icon">{{ rec.icon }}</div>
+        <div class="rec-cat">{{ rec.cat }}</div>
+        <div class="rec-val">{{ rec.val }}</div>
+        <div class="rec-desc">{{ rec.desc }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REMEDIES TAB ── -->
+  <div class="card" *ngIf="activeTab()==='recs'">
+    <div class="slabel">Upaya / Parihara</div>
+    <h2 class="stitle">Personalised Vedic Remedies</h2>
+    <div class="remedy-grid">
+      <ng-container *ngFor="let rk of remKeys">
+        <div class="rem-card" *ngIf="r.remedies[rk.key] && r.remedies[rk.key].length">
+          <div class="rem-cat">{{ rk.icon }} {{ rk.title }}</div>
+          <ul class="rem-items">
+            <li *ngFor="let item of r.remedies[rk.key]">
+              <span>📿</span>{{ item }}
+            </li>
+          </ul>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ── Actions ── -->
+  <div class="actions">
+    <button class="btn-s" (click)="window.print()">🖨️ Print / Save as PDF</button>
+    <button class="btn-s" (click)="shareWA(r)">📲 Share on WhatsApp</button>
+    <button class="btn-s" (click)="reset()">🔄 New Reading</button>
+  </div>
+</div>

@@ -1,0 +1,11 @@
+<header class="site-header">
+  <span class="om-sym"><img src="assets/Lord-Buddha-nobg.png" alt="" style="width:100px;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span style="display:none;font-size:2.6rem">ॐ</span></span>
+  <h1 class="site-title">Kundali Milan</h1>
+  <p class="site-sub">अष्ट कूट गुण मिलान · Ashta Koota Gun Milan</p>
+  <div class="hdiv">❖</div>
+  <div class="lang-switcher">
+    <button class="lang-btn" [class.active]="(langSvc.lang$ | async) === 'en'" (click)="switch('en')">English</button>
+    <button class="lang-btn" [class.active]="(langSvc.lang$ | async) === 'hi'" (click)="switch('hi')">हिंदी</button>
+    <button class="lang-btn" [class.active]="(langSvc.lang$ | async) === 'mr'" (click)="switch('mr')">मराठी</button>
+  </div>
+</header>
