@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: '/api'   // Adjust to your production API URL e.g. 'https://api.yourdomain.com/api'
+  apiUrl: 'https://kundali-milan-backend.onrender.com/api'   // Adjust to your production API URL e.g. 'https://api.yourdomain.com/api'
 };
