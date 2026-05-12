@@ -1,10 +1,9 @@
 import { Routes } from '@angular/router';
+import { KundaliMilanComponent } from './components/kundali-milan/kundali-milan.component';
 
 export const routes: Routes = [
   {
-    path: '',
-    redirectTo: 'kundali-milan',
-    pathMatch: 'full'
+    path: '', component: KundaliMilanComponent
   },
   {
     path: 'kundali-milan',
