@@ -2,12 +2,12 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
-    path: '',
-    redirectTo: 'kundali-milan',
+    path: 'kundali-milan',
+    redirectTo: '',
     pathMatch: 'full'
   },
   {
-    path: 'kundali-milan',
+    path: '',
     loadComponent: () =>
       import('./components/kundali-milan/kundali-milan.component')
         .then(m => m.KundaliMilanComponent)
@@ -18,5 +18,5 @@ export const routes: Routes = [
       import('./components/bhavishya/bhavishya.component')
         .then(m => m.BhavishyaComponent)
   },
-  { path: '**', redirectTo: 'kundali-milan' }
+  { path: '**', redirectTo: '' }
 ];
