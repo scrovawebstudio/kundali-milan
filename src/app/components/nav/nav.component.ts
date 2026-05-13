@@ -7,7 +7,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   imports: [RouterLink, RouterLinkActive],
   template: `
     <nav class="app-nav">
-      <a class="nav-tab" routerLink="/" routerLinkActive="active">
+      <a class="nav-tab" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
         <span class="tab-icon"></span><span>Kundali Milan</span>
       </a>
       <a class="nav-tab" routerLink="/bhavishya" routerLinkActive="active">

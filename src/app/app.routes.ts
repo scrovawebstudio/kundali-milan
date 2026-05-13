@@ -2,11 +2,6 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
-    path: 'kundali-milan/bhavishya',
-    redirectTo: 'bhavishya',
-    pathMatch: 'full'
-  },
-  {
     path: '',
     loadComponent: () =>
       import('./components/kundali-milan/kundali-milan.component')
