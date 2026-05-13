@@ -2,8 +2,8 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
-    path: 'kundali-milan',
-    redirectTo: '',
+    path: 'kundali-milan/bhavishya',
+    redirectTo: 'bhavishya',
     pathMatch: 'full'
   },
   {
