@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AstrologyService } from '../../services/astrology.service';
@@ -6,11 +6,17 @@ import { BhavishyaResult, LifeArea, GuidanceItem } from '../../models/models';
 import { TimePickerComponent } from '../shared/time-picker.component';
 import { TzSelectComponent } from '../shared/tz-select.component';
 import { SafeHtmlPipe } from '../shared/safe-html.pipe';
+import { SupportPopupComponent } from '../shared/support/support-popup.component'; // ← ADD THIS
 
 @Component({
   selector: 'app-bhavishya',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TimePickerComponent, TzSelectComponent, SafeHtmlPipe],
+  imports: [
+    CommonModule, ReactiveFormsModule,
+    TimePickerComponent, TzSelectComponent,
+    SafeHtmlPipe,
+    SupportPopupComponent,              // ← ADD THIS
+  ],
   templateUrl: './bhavishya.component.html'
 })
 export class BhavishyaComponent {
@@ -18,6 +24,9 @@ export class BhavishyaComponent {
   result   = signal<BhavishyaResult | null>(null);
   error    = signal('');
   activeTab = signal<'life'|'dasha'|'bhava'|'dosha'|'guidance'|'recs'>('life');
+
+  /** Reference to the popup so we can call .arm() on each new search */
+  @ViewChild(SupportPopupComponent) supportPopup!: SupportPopupComponent;
 
   form = this.fb.group({
     name:   ['', Validators.required],
@@ -40,7 +49,11 @@ export class BhavishyaComponent {
       next: data => {
         this.result.set(data);
         this.loading.set(false);
-        setTimeout(() => document.getElementById('bhav-results')?.scrollIntoView({ behavior: 'smooth' }), 80);
+        // ← Re-arm the popup so it watches scroll for this new result
+        setTimeout(() => {
+          this.supportPopup?.arm();
+          document.getElementById('bhav-results')?.scrollIntoView({ behavior: 'smooth' });
+        }, 80);
       },
       error: err => {
         this.error.set(err.error?.error || 'Calculation failed. Please try again.');

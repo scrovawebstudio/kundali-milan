@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AstrologyService } from '../../services/astrology.service';
@@ -7,13 +7,19 @@ import { TimePickerComponent } from '../shared/time-picker.component';
 import { TzSelectComponent } from '../shared/tz-select.component';
 import { SafeHtmlPipe } from '../shared/safe-html.pipe';
 import { MedicalReportComponent } from '../shared/medical-report.component';
+import { SupportPopupComponent } from '../shared/support/support-popup.component'; // ← ADD THIS
 
 const BG_OPTS = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
 
 @Component({
   selector: 'app-kundali-milan',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TimePickerComponent, TzSelectComponent, SafeHtmlPipe, MedicalReportComponent],
+  imports: [
+    CommonModule, ReactiveFormsModule,
+    TimePickerComponent, TzSelectComponent,
+    SafeHtmlPipe, MedicalReportComponent,
+    SupportPopupComponent,              // ← ADD THIS
+  ],
   templateUrl: './kundali-milan.component.html'
 })
 export class KundaliMilanComponent {
@@ -21,6 +27,9 @@ export class KundaliMilanComponent {
   loading   = signal(false);
   result    = signal<KundaliMilanResult | null>(null);
   error     = signal('');
+
+  /** Reference to the popup so we can call .arm() on each new search */
+  @ViewChild(SupportPopupComponent) supportPopup!: SupportPopupComponent;
 
   form = this.fb.group({
     boyName:  ['', Validators.required],
@@ -46,8 +55,19 @@ export class KundaliMilanComponent {
     this.result.set(null);
 
     this.svc.calculateKundaliMilan(this.form.value as any).subscribe({
-      next: data => { this.result.set(data); this.loading.set(false); setTimeout(() => document.getElementById('km-results')?.scrollIntoView({ behavior: 'smooth' }), 80); },
-      error: err => { this.error.set(err.error?.error || 'Calculation failed. Please try again.'); this.loading.set(false); }
+      next: data => {
+        this.result.set(data);
+        this.loading.set(false);
+        // ← Re-arm the popup so it watches scroll for this new result
+        setTimeout(() => {
+          this.supportPopup?.arm();
+          document.getElementById('km-results')?.scrollIntoView({ behavior: 'smooth' });
+        }, 80);
+      },
+      error: err => {
+        this.error.set(err.error?.error || 'Calculation failed. Please try again.');
+        this.loading.set(false);
+      }
     });
   }
 
